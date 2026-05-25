@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nielsen Formatter — AZ-Sort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,700;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --cream:      #faf7f2;
+    --cream2:     #f2ece2;
+    --cream3:     #ede6d8;
+    --white:      #ffffff;
+    --black:      #1a1714;
+    --text:       #2a2420;
+    --muted:      #7a6f68;
+    --muted2:     #b0a49c;
+    --terra:      #c45c3a;
+    --terra-soft: #faf0ec;
+    --terra-mid:  #d97050;
+    --terra-dark: #a84830;
+    --border:     #e4ddd4;
+    --border2:    #cec5ba;
+    --green:      #3a7c5c;
+    --green-soft: #eef6f1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px; display: flex; align-items: center; padding: 0 40px;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  nav.scrolled { background: var(--black); box-shadow: 0 1px 0 rgba(196,92,58,0.5); }
+  .nav-inner {
+    max-width: 1000px; width: 100%; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wordmark { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: -0.02em; text-decoration: none; }
+  .wordmark em { font-style: italic; color: var(--terra-mid); font-weight: 300; }
+  .nav-back { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.15s; }
+  .nav-back:hover { color: rgba(255,255,255,0.9); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 52vh; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 100px 40px 60px; background: var(--black); position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 32px 32px; pointer-events: none; z-index: 0;
+  }
+  .hero-glow {
+    position: absolute; bottom: -160px; right: -160px; width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(196,92,58,0.22) 0%, transparent 60%);
+    pointer-events: none; z-index: 0; transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+  }
+  .hero-glow2 {
+    position: absolute; top: -80px; left: -80px; width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(196,92,58,0.07) 0%, transparent 65%);
+    pointer-events: none; z-index: 0; transition: transform 0.8s cubic-bezier(0.16,1,0.3,1);
+  }
+  .hero-inner { max-width: 1000px; margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+  .hero-kicker {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--terra-mid); margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+  }
+  .hero-kicker::before { content: ''; display: block; width: 32px; height: 1px; background: var(--terra-mid); }
+  .hero h1 {
+    font-family: 'Fraunces', serif; font-size: clamp(48px, 8vw, 96px); font-weight: 700;
+    line-height: 0.93; letter-spacing: -0.025em; color: #fff; margin-bottom: 28px;
+    opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s forwards;
+  }
+  .hero h1 em { font-style: italic; color: var(--terra-mid); font-weight: 300; display: block; }
+  .hero-desc {
+    font-size: 13px; color: rgba(255,255,255,0.35); font-weight: 300; line-height: 1.8; max-width: 440px;
+    opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.32s forwards;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main-section { background: var(--cream); padding: 64px 40px 100px; }
+  .main-inner { max-width: 1000px; margin: 0 auto; }
+
+  /* ── STEP HEADER ── */
+  .step-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1.5px solid var(--black); padding-bottom: 14px; margin-bottom: 0;
+  }
+  .step-title { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 700; letter-spacing: -0.025em; color: var(--black); line-height: 1; }
+  .step-title em { font-style: italic; font-weight: 300; color: var(--terra); }
+  .step-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted2); letter-spacing: 0.08em; }
+
+  /* ── RUN / MEDIA TYPE SELECTORS ── */
+  .selector-block { border-bottom: 1px solid var(--border); padding: 0; }
+
+  .selector-row {
+    display: grid; grid-template-columns: 28px 1fr; align-items: start;
+    gap: 24px; padding: 24px 16px;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .selector-row.visible { opacity: 1; transform: translateY(0); }
+
+  .sel-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted2); letter-spacing: 0.04em; padding-top: 4px; }
+  .sel-label { font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--terra); margin-bottom: 12px; }
+  .sel-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--black); margin-bottom: 14px; line-height: 1; }
+  .sel-title em { font-style: italic; font-weight: 300; }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .sel-btn {
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    padding: 8px 18px; border: 1.5px solid var(--border2); border-radius: 4px;
+    background: var(--cream); color: var(--muted); cursor: pointer;
+    transition: all 0.15s; letter-spacing: 0.01em;
+  }
+  .sel-btn:hover { border-color: var(--terra); color: var(--text); background: var(--terra-soft); }
+  .sel-btn.active { background: var(--terra); border-color: var(--terra); color: #fff; font-weight: 600; }
+  .sel-btn.warn { border-color: rgba(196,92,58,0.3); color: var(--muted2); }
+  .sel-btn.warn.active { background: var(--muted2); border-color: var(--muted2); }
+
+  /* ── UPLOAD AREA ── */
+  .upload-block { border-bottom: 1px solid var(--border); }
+  .upload-row {
+    display: grid; grid-template-columns: 28px 1fr; align-items: start;
+    gap: 24px; padding: 24px 16px;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .upload-row.visible { opacity: 1; transform: translateY(0); }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border2); border-radius: 6px;
+    padding: 36px 24px; text-align: center; cursor: pointer;
+    position: relative; transition: all 0.15s; background: var(--cream);
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--terra); background: var(--terra-soft); }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon {
+    width: 36px; height: 36px; margin: 0 auto 12px;
+    border: 1.5px solid var(--border2); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drop-icon svg { color: var(--muted2); }
+  .drop-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .drop-sub { font-size: 12px; color: var(--muted2); }
+
+  /* ── STATUS / INFO ── */
+  .info-bar {
+    display: none; margin-top: 14px; padding: 14px 16px;
+    border-radius: 6px; flex-direction: column; gap: 8px; font-size: 13px;
+  }
+  .info-bar.show { display: flex; }
+  .info-bar.detecting { background: var(--cream2); border: 1.5px solid var(--border2); color: var(--muted); }
+  .info-bar.ready    { background: var(--green-soft); border: 1.5px solid rgba(58,124,92,0.25); }
+  .info-bar.warn-state { background: var(--terra-soft); border: 1.5px solid rgba(196,92,58,0.25); }
+  .info-bar.error-state { background: #fff0ee; border: 1.5px solid rgba(196,92,58,0.4); color: var(--terra-dark); }
+
+  .info-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 10px;
+    border-radius: 3px; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .pill-run    { background: var(--cream3); color: var(--muted); border: 1px solid var(--border2); }
+  .pill-media  { background: var(--terra-soft); color: var(--terra); border: 1px solid rgba(196,92,58,0.2); }
+  .pill-period { background: var(--green-soft); color: var(--green); border: 1px solid rgba(58,124,92,0.2); }
+  .pill-rows   { background: var(--cream3); color: var(--muted2); border: 1px solid var(--border); }
+
+  .filename-wrap { margin-top: 2px; }
+  .filename-label { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); margin-bottom: 4px; }
+  .filename-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--green); line-height: 1.5; }
+  .warn-msg { font-size: 12px; color: var(--terra); line-height: 1.6; }
+
+  /* ── CONVERT BUTTON ── */
+  .convert-wrap {
+    padding: 28px 16px 0 52px;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .convert-wrap.visible { opacity: 1; transform: translateY(0); }
+
+  .convert-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 28px; background: var(--terra); color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 4px;
+    cursor: pointer; transition: background 0.15s, transform 0.15s;
+  }
+  .convert-btn:hover { background: var(--terra-dark); transform: translateY(-2px); }
+  .convert-btn:active { transform: translateY(0); }
+  .convert-btn:disabled { background: var(--muted2); cursor: not-allowed; transform: none; }
+  .convert-btn-arrow { display: inline-block; font-size: 14px; }
+
+  /* ── PROGRESS ── */
+  .progress-wrap { display: none; margin-top: 14px; }
+  .progress-wrap.show { display: block; }
+  .progress-track { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--terra); border-radius: 2px; width: 0%; transition: width 0.25s; }
+  .progress-text { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted2); margin-top: 8px; letter-spacing: 0.04em; }
+
+  /* ── DONE ── */
+  .done-bar {
+    display: none; margin-top: 14px; padding: 14px 16px;
+    background: var(--green-soft); border: 1.5px solid rgba(58,124,92,0.25);
+    border-radius: 6px; font-size: 13px; color: var(--green); font-weight: 500;
+  }
+  .done-bar.show { display: block; }
+  .done-file { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--green); opacity: 0.8; margin-top: 4px; }
+
+  /* ── REFERENCE SECTION ── */
+  .ref-section { margin-top: 64px; }
+  .ref-section .step-header { margin-bottom: 0; }
+
+  .ref-row {
+    display: grid; grid-template-columns: 28px 1fr; gap: 24px;
+    padding: 20px 16px; border-bottom: 1px solid var(--border);
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .ref-row.visible { opacity: 1; transform: translateY(0); }
+  .ref-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted2); padding-top: 2px; }
+  .ref-tag {
+    display: inline-block; font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--terra); background: var(--terra-soft);
+    border: 1px solid rgba(196,92,58,0.15); padding: 2px 8px; border-radius: 3px; margin-bottom: 6px;
+  }
+  .ref-name { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--black); margin-bottom: 6px; line-height: 1.1; }
+  .ref-name em { font-style: italic; font-weight: 300; }
+  .ref-desc { font-size: 12px; color: var(--muted); font-weight: 300; line-height: 1.7; max-width: 580px; }
+
+  /* ── FOOTER ── */
+  .footer { background: var(--black); border-top: 2px solid var(--terra); padding: 32px 40px; margin-top: 64px; }
+  .footer-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .footer-wordmark { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: rgba(255,255,255,0.35); text-decoration: none; }
+  .footer-wordmark em { font-style: italic; font-weight: 300; color: var(--terra-mid); }
+  .footer-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .footer-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 0.06em; }
+  .footer-tagline { font-family: 'Fraunces', serif; font-size: 12px; font-style: italic; font-weight: 300; color: rgba(255,255,255,0.18); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 640px) {
+    nav { padding: 0 20px; }
+    .hero { padding: 90px 20px 48px; }
+    .main-section { padding: 48px 20px 72px; }
+    .selector-row, .upload-row, .ref-row { grid-template-columns: 1fr; gap: 8px; padding: 20px 12px; }
+    .sel-num, .ref-num { display: none; }
+    .convert-wrap { padding-left: 12px; }
+    .footer { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-inner">
+    <a class="wordmark" href="index.html">az<em>-</em>sort</a>
+    <a class="nav-back" href="index.html">← Back to tools</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-inner">
+    <div class="hero-kicker">Nielsen Report Formatter</div>
+    <h1>Raw run.<br><em>Clean CSV.</em></h1>
+    <p class="hero-desc">Upload any Total Industry or Total Pharma + PC Nielsen export and get a CMV-formatted CSV — named, structured, and ready to go.</p>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-section">
+  <div class="main-inner">
+
+    <!-- STEP HEADER -->
+    <div class="step-header">
+      <div class="step-title">Format<br><em>Your Run</em></div>
+      <div class="step-label">03 steps</div>
+    </div>
+
+    <!-- STEP 1: RUN TYPE -->
+    <div class="selector-block">
+      <div class="selector-row" id="rowStep1">
+        <div class="sel-num">01</div>
+        <div>
+          <div class="sel-label">Step 01</div>
+          <div class="sel-title">Select <em>Run Type</em></div>
+          <div class="btn-group" id="runGroup">
+            <button class="sel-btn active" data-run="industry" onclick="selectRun('industry')">Total Industry</button>
+            <button class="sel-btn" data-run="pharma" onclick="selectRun('pharma')">Total Pharma + PC</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: MEDIA TYPE -->
+    <div class="selector-block">
+      <div class="selector-row" id="rowStep2">
+        <div class="sel-num">02</div>
+        <div>
+          <div class="sel-label">Step 02</div>
+          <div class="sel-title">Select <em>Media Type</em></div>
+          <div class="btn-group" id="mediaGroup"></div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;">Auto-detected from file content.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: UPLOAD -->
+    <div class="upload-block">
+      <div class="upload-row" id="rowStep3">
+        <div class="sel-num">03</div>
+        <div>
+          <div class="sel-label">Step 03</div>
+          <div class="sel-title">Upload <em>File</em></div>
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+            <div class="drop-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+            </div>
+            <div class="drop-title">Drop file here or click to browse</div>
+            <div class="drop-sub">.xlsx &nbsp;·&nbsp; .xls &nbsp;·&nbsp; .csv</div>
+          </div>
+          <div class="info-bar" id="infoBar">
+            <div class="info-pills" id="infoPills"></div>
+            <div class="filename-wrap" id="filenameWrap" style="display:none">
+              <div class="filename-label">Output filename</div>
+              <div class="filename-val" id="filenameVal"></div>
+            </div>
+            <div class="warn-msg" id="warnMsg" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONVERT -->
+    <div class="convert-wrap" id="convertWrap" style="display:none">
+      <button class="convert-btn" id="convertBtn" onclick="convert()">
+        Convert &amp; Download
+        <span class="convert-btn-arrow">↓</span>
+      </button>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">Processing…</div>
+      </div>
+      <div class="done-bar" id="doneBar">
+        ✓ Exported successfully
+        <div class="done-file" id="doneFile"></div>
+      </div>
+    </div>
+
+    <!-- REFERENCE -->
+    <div class="ref-section">
+      <div class="step-header">
+        <div class="step-title">What It<br><em>Does</em></div>
+        <div class="step-label" id="refCount"></div>
+      </div>
+      <div id="refList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-inner">
+    <a class="footer-wordmark" href="index.html">az<em>-</em>sort</a>
+    <div class="footer-right">
+      <span class="footer-sub">Nielsen Formatter</span>
+      <span class="footer-tagline">Good data. No headache.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const MEDIA_TYPES = {
+  industry: [
+    { id:'atl',     label:'ATL',     warn:false, runLabel:'Total Industry', desc:'Adds Heading column. Inserts 3 blank rows before the Grand Total header. Reformats Month Year to <em>YY-Mon</em>. Comma-formats all numbers.' },
+    { id:'digital', label:'Digital', warn:false, runLabel:'Total Industry', desc:'Adds Heading column. Reformats date values to <em>YY-Mon</em>. Comma-formats all numbers.' },
+  ],
+  pharma: [
+    { id:'ooh',     label:'OOH',     warn:false, runLabel:'Total Pharma + PC', desc:'Adds Heading column. Moves Spend → <em>P</em> (after Date). Renames: Type → Billboard Type, Copyline → Version, Media Network → Media Group, Media Outlet → Outlet. Comma-formats spend.' },
+    { id:'print',   label:'Print',   warn:false, runLabel:'Total Pharma + PC', desc:'Adds Heading column. Moves Spend → <em>P</em> (after Date). Renames: Media Outlet → Publication, Page Start → Page, Total Area → Size, Colour → Color, Module Size → Size/Format, Media Network → Media Group. Comma-formats spend.' },
+    { id:'radio',   label:'Radio',   warn:false, runLabel:'Total Pharma + PC', desc:'Adds Heading column. Moves Spend → <em>P</em> (after Date). Renames: Region → Area, Media Outlet → Channel, Weekday → Day, Medium Type → Medium, Fault → Remark, Media Network → Media Group. Adds blank End Time column. Comma-formats spend.' },
+    { id:'tv',      label:'TV',      warn:false, runLabel:'Total Pharma + PC', desc:'Combines the <em>Analysis Header</em> sheet and data sheet into a single CSV. Formats GRP as percentage (×100, 2dp) and Investment with comma separators.' },
+    { id:'digital', label:'Digital', warn:false, runLabel:'Total Pharma + PC', desc:'Adds Heading column. Renames: Media Outlet → Outlet, Creative AdFormat → Inventory Type, User App Type → Platform Type, AdWidth/Height → Creative Width/Height, IsSelfAd → House Ad, Media Network → Media Group. Moves Impressions → Ad Impression before Spend → P. Both comma-formatted.' },
+  ]
+};
+
+const FILENAMES = {
+  industry: {
+    atl:     p => `Total Industry - ATL - By Brand, ${p}.csv`,
+    digital: p => `Total Industry - Digital - By Brand, ${p}.csv`,
+  },
+  pharma: {
+    ooh:     p => `Total Pharma + Personal Care - OOH, ${p}.csv`,
+    print:   p => `Total Pharma + Personal Care - Print, ${p}.csv`,
+    radio:   p => `Total Pharma + Personal Care - Radio, ${p}.csv`,
+    tv:      p => `Total Pharma + Personal Care - TV, ${p}.csv`,
+    digital: p => `Total Pharma + Personal Care - Digital, ${p}.csv`,
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let selectedRun   = 'industry';
+let selectedMedia = 'atl';
+let parsedRows    = null;
+let parsedWb      = null;
+let detectedPeriod = '';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+function init() { renderMediaBtns(); renderRef(); setupScrollReveal(); setupParallax(); setupNav(); }
+
+function renderMediaBtns() {
+  const types = MEDIA_TYPES[selectedRun];
+  const group  = document.getElementById('mediaGroup');
+  group.innerHTML = types.map(t => `
+    <button class="sel-btn ${t.id===selectedMedia?'active':''}" data-media="${t.id}" onclick="selectMedia('${t.id}')">${t.label}</button>
+  `).join('');
+  if (!types.find(t => t.id === selectedMedia)) {
+    selectedMedia = types[0].id;
+    renderMediaBtns();
+  }
+}
+
+function renderRef() {
+  const types = MEDIA_TYPES[selectedRun];
+  document.getElementById('refCount').textContent = `0${types.length} types`;
+  document.getElementById('refList').innerHTML = types.map((t, i) => `
+    <div class="ref-row">
+      <div class="ref-num">0${i+1}</div>
+      <div>
+        <div class="ref-tag">${t.runLabel}</div>
+        <div class="ref-name">${t.label}</div>
+        <div class="ref-desc">${t.desc}</div>
+      </div>
+    </div>`).join('');
+  setupScrollReveal();
+}
+
+function selectRun(run) {
+  selectedRun = run;
+  document.querySelectorAll('[data-run]').forEach(b => b.classList.toggle('active', b.dataset.run === run));
+  renderMediaBtns();
+  renderRef();
+  if (parsedRows || parsedWb) refreshPreview();
+}
+
+function selectMedia(media) {
+  selectedMedia = media;
+  document.querySelectorAll('[data-media]').forEach(b => b.classList.toggle('active', b.dataset.media === media));
+  if (parsedRows || parsedWb) refreshPreview();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────────────────────────────────────
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE HANDLING
+// ─────────────────────────────────────────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  showInfo('detecting', [{cls:'pill-run',txt:'Reading…'}], null, null);
+  document.getElementById('convertWrap').style.display = 'none';
+  document.getElementById('doneBar').classList.remove('show');
+  parsedRows = null; parsedWb = null;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let wb;
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        wb = XLSX.read(e.target.result, { type: 'string' });
+      } else {
+        wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', raw: true });
+      }
+
+      const detected = autoDetect(wb);
+      if (detected.run)   selectRun(detected.run);
+      if (detected.media) selectMedia(detected.media);
+
+      detectedPeriod = extractPeriod(wb);
+
+      if (selectedRun === 'pharma' && selectedMedia === 'tv') {
+        parsedWb = wb; parsedRows = null;
+      } else {
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        parsedRows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+        parsedWb   = null;
+      }
+
+      refreshPreview();
+    } catch(err) {
+      showInfo('error-state', [{cls:'pill-run',txt:'Error'}], null, '✗ ' + err.message);
+    }
+  };
+
+  if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function autoDetect(wb) {
+  const sheetNames = wb.SheetNames;
+  if (sheetNames.some(s => s.toLowerCase().includes('analysis header'))) return { run:'pharma', media:'tv' };
+
+  const ws   = wb.Sheets[sheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+  const head = rows.slice(0,10).flat().map(c=>String(c)).join(' ').toUpperCase();
+
+  let run = null;
+  if (head.includes('TOTAL PHARMA') || head.includes('PHARMA + PC')) run = 'pharma';
+  else if (head.includes('TOTAL INDUSTRY') || head.includes('PROJECT DIAMOND - TOTAL INDUSTRY')) run = 'industry';
+
+  let media = null;
+  for (const r of rows.slice(0,12)) {
+    const c1 = String(r[1]||'').toLowerCase();
+    if (c1.includes('(outdoor)') || c1.includes('outdoor')) { media='ooh'; break; }
+    if (c1.includes('(print)')   || c1.includes('print'))   { media='print'; break; }
+    if (c1.includes('(radio)')   || c1.includes('radio'))   { media='radio'; break; }
+    if (c1.includes('(digital)') || c1.includes('digital')) { media='digital'; break; }
+    if (c1.includes('(tv)')      || c1.includes(' tv'))     { media='tv'; break; }
+  }
+  if (!media && run === 'industry' && !head.includes('DIGITAL')) media = 'atl';
+  if (!media && run === 'industry' && head.includes('DIGITAL'))  media = 'digital';
+
+  return { run, media };
+}
+
+function extractPeriod(wb) {
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (const r of rows.slice(0,12)) {
+    for (let c=0; c<r.length; c++) {
+      if (String(r[c]).trim()==='Period') {
+        for (let d=c+1; d<Math.min(r.length,c+3); d++) {
+          const m = String(r[d]||'').match(/to\s+(\d+)\/(\d+)\/(\d{4})/i);
+          if (m) return months[parseInt(m[1])-1]+' '+m[3];
+        }
+      }
+    }
+  }
+  for (const r of rows.slice(0,15)) {
+    const m = String(r[0]||'').match(/(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
+    if (m) return months[parseInt(m[5])-1]+' '+m[6];
+  }
+  return '';
+}
+
+function refreshPreview() {
+  const mediaLabel = MEDIA_TYPES[selectedRun].find(t=>t.id===selectedMedia)?.label || selectedMedia;
+  const runLabel   = selectedRun==='industry' ? 'Total Industry' : 'Total Pharma + PC';
+  const fname      = FILENAMES[selectedRun][selectedMedia]?.(detectedPeriod||'???');
+  const rowCount   = parsedRows ? parsedRows.length : '(multi-sheet)';
+  const pills = [
+    { cls:'pill-run',    txt: runLabel },
+    { cls:'pill-media',  txt: mediaLabel },
+    { cls:'pill-period', txt: detectedPeriod||'?' },
+    { cls:'pill-rows',   txt: rowCount+' rows' },
+  ];
+  showInfo('ready', pills, fname, null);
+  const cw = document.getElementById('convertWrap');
+  cw.style.display = 'block';
+  setTimeout(() => cw.classList.add('visible'), 10);
+}
+
+function showInfo(state, pills, filename, warn) {
+  const bar = document.getElementById('infoBar');
+  bar.className = 'info-bar show ' + state;
+  document.getElementById('infoPills').innerHTML = pills.map(p=>`<span class="pill ${p.cls}">${p.txt}</span>`).join('');
+  const fw = document.getElementById('filenameWrap');
+  if (filename) { fw.style.display='block'; document.getElementById('filenameVal').textContent=filename; }
+  else { fw.style.display='none'; }
+  const wm = document.getElementById('warnMsg');
+  if (warn) { wm.style.display='block'; wm.textContent=warn; } else { wm.style.display='none'; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+function formatNum(val) {
+  if (val===''||val===null||val===undefined) return '';
+  const s = String(val).replace(/,/g,'').trim();
+  if (!s) return '';
+  const n = parseFloat(s);
+  if (isNaN(n)) return String(val);
+  return Math.round(n).toLocaleString('en-US');
+}
+
+function formatDateATL(val) {
+  const months = {january:'Jan',february:'Feb',march:'Mar',april:'Apr',may:'May',june:'Jun',july:'Jul',august:'Aug',september:'Sep',october:'Oct',november:'Nov',december:'Dec'};
+  const s = String(val).trim();
+  if (/^\d{2}-[A-Za-z]{3}$/.test(s)) return s;
+  const p = s.split(' ');
+  if (p.length>=2) { const mo=months[p[0].toLowerCase()]; if(mo) return p[1].slice(-2)+'-'+mo; }
+  return s;
+}
+
+function formatDateDigitalIndustry(val) {
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const s = String(val).trim();
+  if (/^\d{2}-[A-Za-z]{3}$/.test(s)) return s;
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1].slice(-2)+'-'+mn[parseInt(m[2])-1];
+  if (!isNaN(val)&&Number(val)>40000) { const d=new Date(Date.UTC(1899,11,30)+Number(val)*86400000); return String(d.getUTCFullYear()).slice(-2)+'-'+mn[d.getUTCMonth()]; }
+  return s;
+}
+
+function toCSV(rows) {
+  return rows.map(row => row.map(cell => {
+    const s=(cell===null||cell===undefined)?'':String(cell);
+    if (s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"';
+    return s;
+  }).join(',')).join('\r\n');
+}
+
+function blankRow(n) { return new Array(n).fill(''); }
+
+function padRow(r, n) {
+  const out=[''];
+  for (let i=0;i<n-1;i++) out.push(r[i]!==undefined&&r[i]!==null?r[i]:'');
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERTERS
+// ─────────────────────────────────────────────────────────────────────────────
+function convertIndustryATL(rows) {
+  const N=9, out=[];
+  const catIdx = rows.findIndex(r=>r.some(c=>String(c).trim()==='Category'));
+  if (catIdx<0) throw new Error('Cannot find Category header row');
+  for (let i=0;i<=4;i++) out.push(padRow(rows[i]||[],N));
+  out.push(blankRow(N)); out.push(blankRow(N)); out.push(blankRow(N));
+  out.push(['','','','','','Grand Total','Grand Total','Spend','Ad Count']);
+  out.push(['Heading','Category','Advertiser','Brand','Month Year','Spend','Ad Count','','']);
+  let first=true;
+  for (let i=catIdx+1;i<rows.length;i++) {
+    const r=rows[i], c0=String(r[0]||'').trim();
+    if (r.every(c=>c===''||c===null||c===undefined)) { out.push(blankRow(N)); continue; }
+    if (c0==='Grand Total') { out.push(['','Grand Total','','','',formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]); continue; }
+    if (c0==='Created'||c0==='User'||c0.includes('Nielsen')||c0==='') { out.push(padRow(r,N)); continue; }
+    out.push([first?'Data':'',r[0],r[1],r[2],formatDateATL(r[3]),formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]);
+    first=false;
+  }
+  return out;
+}
+
+function convertIndustryDigital(rows) {
+  const N=9, out=[];
+  const catIdx = rows.findIndex(r=>r.some(c=>String(c).trim()==='Category'));
+  if (catIdx<0) throw new Error('Cannot find Category header row');
+  for (let i=0;i<=5;i++) out.push(padRow(rows[i]||[],N));
+  out.push(blankRow(N)); out.push(blankRow(N));
+  out.push(['','','','','','Grand Total','Grand Total','Spend','Ad Count']);
+  out.push(['Heading','Category','Advertiser','Brand','Month Year','Spend','Ad Count','','']);
+  let first=true;
+  for (let i=catIdx+1;i<rows.length;i++) {
+    const r=rows[i], c0=String(r[0]||'').trim();
+    if (r.every(c=>c===''||c===null||c===undefined)) { out.push(blankRow(N)); continue; }
+    if (c0==='Grand Total') { out.push(['','Grand Total','','','',formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]); continue; }
+    if (c0==='Created'||c0==='User'||c0.includes('Nielsen')||c0==='') { out.push(padRow(r,N)); continue; }
+    out.push([first?'Data':'',r[0],r[1],r[2],formatDateDigitalIndustry(r[3]),formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]);
+    first=false;
+  }
+  return out;
+}
+
+function convertPharmaGeneric(rows, newHeaders, colMap) {
+  const N = newHeaders.length+1, out=[];
+  const hdrIdx = rows.findIndex(r=>String(r[0]||'').trim()==='Section');
+  if (hdrIdx<0) throw new Error('Cannot find Section header row');
+  for (let i=0;i<hdrIdx;i++) {
+    const r=rows[i]||[];
+    out.push(['', ...Array.from({length:N-1},(_,k)=>r[k]!==undefined&&r[k]!==null?r[k]:'')]);
+  }
+  out.push(['Heading',...newHeaders]);
+  let first=true;
+  for (let i=hdrIdx+1;i<rows.length;i++) {
+    const r=rows[i];
+    if (!r||r.every(c=>c===''||c===null||c===undefined)) { out.push(blankRow(N)); continue; }
+    out.push([first?'Data':'', ...colMap(r)]);
+    first=false;
+  }
+  return out;
+}
+
+function convertPharmaOOH(rows) {
+  const h=['Section','Category','Sub-Category','Advertiser','Product','Brand','Date','P','Billboard Type','Location','Size','Direction','Landmark','Ad Type','Version','System','Region','Expenditure Media Type','Media Group','Outlet'];
+  return convertPharmaGeneric(rows,h,r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6],formatNum(r[19]),r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],r[17],r[18]]);
+}
+
+function convertPharmaPrint(rows) {
+  const h=['Section','Category','Sub-Category','Advertiser','Product','Brand','Version','Publication','Date','P','Page','Size','Color','Position','Size/Format','Ad Type','System','Region','Expenditure Media Type','Media Group'];
+  return convertPharmaGeneric(rows,h,r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],formatNum(r[19]),r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],r[17],r[18]]);
+}
+
+function convertPharmaRadio(rows) {
+  const h=['Section','Category','Sub-Category','Advertiser','Product','Brand','Version','Duration','Area','Channel','Date','P','Day','Time','End Time','Ad Type','Medium','Spot Type','Remark','Program','System','Expenditure Media Type','Media Group'];
+  return convertPharmaGeneric(rows,h,r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],formatNum(r[21]),r[11],r[12],'',r[13],r[14],r[15],r[16]===undefined||r[16]===null||r[16]===''?'':r[16],r[17],r[18],r[19],r[20]]);
+}
+
+function convertPharmaTV(wb) {
+  const headerSheet = wb.SheetNames.find(s=>s.toLowerCase().includes('analysis header'));
+  const dataSheet   = wb.SheetNames.find(s=>!s.toLowerCase().includes('analysis header'));
+  if (!headerSheet||!dataSheet) throw new Error('Could not find both sheets in the TV file.');
+  const hRows  = XLSX.utils.sheet_to_json(wb.Sheets[headerSheet],{header:1,defval:'',raw:false});
+  const dRowsR = XLSX.utils.sheet_to_json(wb.Sheets[dataSheet],  {header:1,defval:'',raw:true});
+  const N = Math.max(...dRowsR.map(r=>r.length),...hRows.map(r=>r.length),14);
+  const colHeaderIdx = dRowsR.findIndex(r=>String(r[0]||'').trim()==='Advertiser');
+  const out=[];
+
+  // Analysis Header rows: strip \xa0 (non-breaking spaces) to prevent Â rendering in Excel
+  for (const r of hRows) {
+    out.push(Array.from({length:N},(_,i)=>{
+      const v = r[i]!==undefined&&r[i]!==null ? r[i] : '';
+      return typeof v === 'string' ? v.replace(/\xa0/g, ' ').trimEnd() : v;
+    }));
+  }
+
+  // Blank separator between Analysis Header and data sheet
+  out.push(blankRow(N));
+
+  // Data sheet rows — insert an extra blank between Market value (row 1) and Advertiser header (row 2)
+  for (let ri=0;ri<dRowsR.length;ri++) {
+    // Insert blank between Market value row (ri=1) and Advertiser header (ri=2)
+    if (ri === 2) out.push(blankRow(N));
+
+    const r=dRowsR[ri], isDataRow=colHeaderIdx>=0&&ri>colHeaderIdx;
+    out.push(Array.from({length:N},(_,i)=>{
+      const v=r[i]; if(v===undefined||v===null) return '';
+      if(isDataRow){
+        if(i===12){const n=parseFloat(v);if(!isNaN(n))return(n*100).toFixed(2)+'%';}
+        if(i===13){const n=parseFloat(String(v).replace(/,/g,''));if(!isNaN(n))return Math.round(n).toLocaleString('en-US');}
+      }
+      return v;
+    }));
+  }
+  return out;
+}
+
+function convertPharmaDigital(rows) {
+  const N=27, out=[];
+  const newHeaders=['Product','Outlet','Date','Buy Type','Ad Type','Inventory Type','IAB Slot Name','Device Type','Platform Type','Visibility (Ad Position)','Creative Width','Creative Height','Creative Duration','Publisher Domain','House Ad','Ad Impression','P','Section','Category','Sub Category','Advertiser','Brand','System','Region','Expenditure Media Type','Media Group'];
+  for (let i=0;i<=6;i++) {
+    const r=rows[i]||[];
+    out.push(['', ...Array.from({length:N-1},(_,k)=>r[k]!==undefined&&r[k]!==null?r[k]:'')]);
+  }
+  out.push(blankRow(N)); out.push(blankRow(N));
+  out.push(['Heading',...newHeaders]);
+  let first=true;
+  for (let i=9;i<rows.length;i++) {
+    const r=rows[i];
+    if (!r||r.every(c=>c===''||c===null||c===undefined)){out.push(blankRow(N));continue;}
+    out.push([first?'Data':'',r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],formatNum(r[24]),formatNum(r[25]),r[15],r[16],r[17],r[18],r[19],r[20],r[21],r[22],r[23]]);
+    first=false;
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERT
+// ─────────────────────────────────────────────────────────────────────────────
+function convert() {
+  if (!parsedRows&&!parsedWb) return;
+  const btn=document.getElementById('convertBtn');
+  btn.disabled=true; btn.textContent='Converting…';
+  document.getElementById('doneBar').classList.remove('show');
+  const pw=document.getElementById('progressWrap'), pf=document.getElementById('progressFill'), pt=document.getElementById('progressText');
+  pw.classList.add('show');
+
+  setTimeout(()=>{
+    try {
+      pf.style.width='15%'; pt.textContent='Processing…';
+      const run=selectedRun, media=selectedMedia;
+      let out;
+      if (run==='industry') {
+        if (media==='atl')          out=convertIndustryATL(parsedRows);
+        else if (media==='digital') out=convertIndustryDigital(parsedRows);
+        else throw new Error('Unknown media type');
+      } else {
+        if (media==='ooh')          out=convertPharmaOOH(parsedRows);
+        else if (media==='print')   out=convertPharmaPrint(parsedRows);
+        else if (media==='radio')   out=convertPharmaRadio(parsedRows);
+        else if (media==='tv')      out=convertPharmaTV(parsedWb);
+        else if (media==='digital') out=convertPharmaDigital(parsedRows);
+        else throw new Error('Unknown media type');
+      }
+      pf.style.width='80%'; pt.textContent='Generating CSV…';
+      const csv=toCSV(out);
+      const fname=FILENAMES[run][media]?.(detectedPeriod);
+      pf.style.width='95%'; pt.textContent='Downloading…';
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=fname; a.click();
+      URL.revokeObjectURL(url);
+      pf.style.width='100%'; pt.textContent='Done!';
+      document.getElementById('doneFile').textContent=fname;
+      document.getElementById('doneBar').classList.add('show');
+      btn.disabled=false; btn.innerHTML='Convert &amp; Download <span class="convert-btn-arrow">↓</span>';
+    } catch(err) {
+      pt.textContent='✗ '+err.message;
+      showInfo('error-state',[{cls:'pill-run',txt:'Error'}],null,'✗ '+err.message);
+      btn.disabled=false; btn.innerHTML='Convert &amp; Download <span class="convert-btn-arrow">↓</span>';
+    }
+  },60);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCROLL REVEAL
+// ─────────────────────────────────────────────────────────────────────────────
+function setupScrollReveal() {
+  const items=document.querySelectorAll('.selector-row, .upload-row, .ref-row');
+  const obs=new IntersectionObserver((entries)=>{
+    entries.forEach((entry,i)=>{
+      if(entry.isIntersecting){
+        const idx=[...items].indexOf(entry.target);
+        setTimeout(()=>entry.target.classList.add('visible'),idx*60);
+        obs.unobserve(entry.target);
+      }
+    });
+  },{threshold:0.08,rootMargin:'0px 0px -20px 0px'});
+  items.forEach(el=>obs.observe(el));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARALLAX & NAV
+// ─────────────────────────────────────────────────────────────────────────────
+function setupParallax() {
+  const glow=document.querySelector('.hero-glow'), glow2=document.querySelector('.hero-glow2'), hero=document.querySelector('.hero');
+  if(!hero) return;
+  hero.addEventListener('mousemove',e=>{
+    const rect=hero.getBoundingClientRect();
+    const cx=(e.clientX-rect.left)/rect.width, cy=(e.clientY-rect.top)/rect.height;
+    glow.style.transform=`translate(${(cx-0.5)*-40}px,${(cy-0.5)*-30}px)`;
+    glow2.style.transform=`translate(${(cx-0.5)*-20}px,${(cy-0.5)*-15}px)`;
+  });
+  hero.addEventListener('mouseleave',()=>{ glow.style.transform=''; glow2.style.transform=''; });
+}
+
+function setupNav() {
+  const nav=document.getElementById('mainNav');
+  const onScroll=()=>nav.classList.toggle('scrolled',window.scrollY>20);
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+}
+
+init();
+</script>
+</body>
+</html>
