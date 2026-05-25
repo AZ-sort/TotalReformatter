@@ -272,8 +272,8 @@
 <!-- NAV -->
 <nav id="mainNav">
   <div class="nav-inner">
-    <a class="wordmark" href="https://az-sort.github.io/HomePage/">az<em>-</em>sort</a>
-    <a class="nav-back" href="https://az-sort.github.io/HomePage/">← Back to tools</a>
+    <a class="wordmark" href="index.html">az<em>-</em>sort</a>
+    <a class="nav-back" href="index.html">← Back to tools</a>
   </div>
 </nav>
 
@@ -386,7 +386,7 @@
 <!-- FOOTER -->
 <div class="footer">
   <div class="footer-inner">
-    <a class="footer-wordmark" href="https://az-sort.github.io/HomePage/">az<em>-</em>sort</a>
+    <a class="footer-wordmark" href="index.html">az<em>-</em>sort</a>
     <div class="footer-right">
       <span class="footer-sub">Nielsen Formatter</span>
       <span class="footer-tagline">Good data. No headache.</span>
@@ -621,6 +621,16 @@ function formatNum(val) {
   return Math.round(n).toLocaleString('en-US');
 }
 
+// Like formatNum but blank/NaN → '0' (used for spend & ad count on data rows)
+function formatNumZero(val) {
+  if (val===''||val===null||val===undefined) return '0';
+  const s = String(val).replace(/,/g,'').trim();
+  if (!s || s==='nan') return '0';
+  const n = parseFloat(s);
+  if (isNaN(n)) return '0';
+  return Math.round(n).toLocaleString('en-US');
+}
+
 function formatDateATL(val) {
   const months = {january:'Jan',february:'Feb',march:'Mar',april:'Apr',may:'May',june:'Jun',july:'Jul',august:'Aug',september:'Sep',october:'Oct',november:'Nov',december:'Dec'};
   const s = String(val).trim();
@@ -673,7 +683,7 @@ function convertIndustryATL(rows) {
     if (r.every(c=>c===''||c===null||c===undefined)) { out.push(blankRow(N)); continue; }
     if (c0==='Grand Total') { out.push(['','Grand Total','','','',formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]); continue; }
     if (c0==='Created'||c0==='User'||c0.includes('Nielsen')||c0==='') { out.push(padRow(r,N)); continue; }
-    out.push([first?'Data':'',r[0],r[1],r[2],formatDateATL(r[3]),formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]);
+    out.push([first?'Data':'',r[0],r[1],r[2],formatDateATL(r[3]),formatNumZero(r[4]),formatNumZero(r[5]),formatNumZero(r[6]),formatNumZero(r[7])]);
     first=false;
   }
   return out;
@@ -693,7 +703,7 @@ function convertIndustryDigital(rows) {
     if (r.every(c=>c===''||c===null||c===undefined)) { out.push(blankRow(N)); continue; }
     if (c0==='Grand Total') { out.push(['','Grand Total','','','',formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]); continue; }
     if (c0==='Created'||c0==='User'||c0.includes('Nielsen')||c0==='') { out.push(padRow(r,N)); continue; }
-    out.push([first?'Data':'',r[0],r[1],r[2],formatDateDigitalIndustry(r[3]),formatNum(r[4]),formatNum(r[5]),formatNum(r[6]),formatNum(r[7])]);
+    out.push([first?'Data':'',r[0],r[1],r[2],formatDateDigitalIndustry(r[3]),formatNumZero(r[4]),formatNumZero(r[5]),formatNumZero(r[6]),formatNumZero(r[7])]);
     first=false;
   }
   return out;
