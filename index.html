@@ -543,7 +543,7 @@ function autoDetect(wb) {
 
   let run = null;
   if (head.includes('TOTAL PHARMA') || head.includes('PHARMA + PC')) run = 'pharma';
-  else if (head.includes('TOTAL INDUSTRY') || head.includes('PROJECT DIAMOND - TOTAL INDUSTRY')) run = 'industry';
+  else if (head.includes('TOTAL INDUSTRY')) run = 'industry';
 
   let media = null;
   for (const r of rows.slice(0,12)) {
